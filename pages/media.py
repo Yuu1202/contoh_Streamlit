@@ -273,60 +273,80 @@ Format yang didukung: `.mp4`, `.webm`, `.ogg`, `.mkv` (tergantung browser)
 """)
 
 st.divider()
-
 # ─────────────────────────────────────────────
-# 8. ST.CAMERA_INPUT
+# 8. ST.CAMERA_INPUT (DENGAN TOMBOL AKTIVASI)
 # ─────────────────────────────────────────────
 st.header("4. st.camera_input()")
 st.write("Mengambil foto langsung dari kamera perangkat (webcam).")
 
-col_cam1, col_cam2 = st.columns([1, 1])
+# Inisialisasi session state untuk status kamera aktif atau tidak
+if "kamera_aktif" not in st.session_state:
+    st.session_state.kamera_aktif = False
 
-with col_cam1:
-    foto = st.camera_input("📷 Ambil foto sekarang:")
+# Jika kamera belum aktif, tampilkan tombol untuk mengaktifkan
+if not st.session_state.kamera_aktif:
+    st.info("Kamera dinonaktifkan untuk kenyamanan Anda. Klik tombol di bawah untuk mengaktifkan.")
+    if st.button("📸 Aktifkan Kamera"):
+        st.session_state.kamera_aktif = True
+        st.rerun()  # Memuat ulang halaman untuk memunculkan kamera
 
-with col_cam2:
-    if foto is not None:
-        st.write("**Foto yang diambil:**")
-        img_foto = Image.open(foto)
+else:
+    # Tombol untuk mematikan kembali kamera jika user selesai
+    if st.button("❌ Matikan Kamera"):
+        st.session_state.kamera_aktif = False
+        st.rerun()
 
-        # Pilihan filter
-        filter_pilihan = st.selectbox(
-            "Terapkan filter:",
-            ["Original", "Grayscale", "Sepia", "Blur", "Contour"]
-        )
+    st.divider()
 
-        if filter_pilihan == "Grayscale":
-            img_hasil = img_foto.convert("L").convert("RGB")
-        elif filter_pilihan == "Sepia":
-            img_gray = np.array(img_foto.convert("L"))
-            sepia = np.stack([
-                np.clip(img_gray * 1.1, 0, 255),
-                np.clip(img_gray * 0.9, 0, 255),
-                np.clip(img_gray * 0.7, 0, 255),
-            ], axis=-1).astype(np.uint8)
-            img_hasil = Image.fromarray(sepia)
-        elif filter_pilihan == "Blur":
-            img_hasil = img_foto.filter(ImageFilter.GaussianBlur(radius=8))
-        elif filter_pilihan == "Contour":
-            img_hasil = img_foto.filter(ImageFilter.CONTOUR)
+    # Layout kolom untuk kamera dan hasil filter
+    col_cam1, col_cam2 = st.columns([1, 1])
+
+    with col_cam1:
+        # Kamera baru akan muncul di sini setelah user menekan tombol aktifkan
+        foto = st.camera_input("📷 Ambil foto sekarang:")
+
+    with col_cam2:
+        if foto is not None:
+            st.write("**Foto yang diambil:**")
+            img_foto = Image.open(foto)
+
+            # Pilihan filter
+            filter_pilihan = st.selectbox(
+                "Terapkan filter:",
+                ["Original", "Grayscale", "Sepia", "Blur", "Contour"]
+            )
+
+            if filter_pilihan == "Grayscale":
+                img_hasil = img_foto.convert("L").convert("RGB")
+            elif filter_pilihan == "Sepia":
+                img_gray = np.array(img_foto.convert("L"))
+                sepia = np.stack([
+                    np.clip(img_gray * 1.1, 0, 255),
+                    np.clip(img_gray * 0.9, 0, 255),
+                    np.clip(img_gray * 0.7, 0, 255),
+                ], axis=-1).astype(np.uint8)
+                img_hasil = Image.fromarray(sepia)
+            elif filter_pilihan == "Blur":
+                img_hasil = img_foto.filter(ImageFilter.GaussianBlur(radius=8))
+            elif filter_pilihan == "Contour":
+                img_hasil = img_foto.filter(ImageFilter.CONTOUR)
+            else:
+                img_hasil = img_foto
+
+            st.image(img_hasil, caption=f"Filter: {filter_pilihan}", use_container_width=True)
+
+            # Download foto hasil
+            buf_cam = io.BytesIO()
+            img_hasil.save(buf_cam, format="PNG")
+            st.download_button(
+                "⬇️ Download Foto",
+                data=buf_cam.getvalue(),
+                file_name=f"foto_{filter_pilihan.lower()}.png",
+                mime="image/png",
+                use_container_width=True
+            )
         else:
-            img_hasil = img_foto
-
-        st.image(img_hasil, caption=f"Filter: {filter_pilihan}", use_container_width=True)
-
-        # Download foto hasil
-        buf_cam = io.BytesIO()
-        img_hasil.save(buf_cam, format="PNG")
-        st.download_button(
-            "⬇️ Download Foto",
-            data=buf_cam.getvalue(),
-            file_name=f"foto_{filter_pilihan.lower()}.png",
-            mime="image/png",
-            use_container_width=True
-        )
-    else:
-        st.info("Klik tombol kamera untuk mengambil foto. Filter akan diterapkan secara real-time.")
+            st.info("Klik tombol jepret pada kamera untuk mengambil foto. Filter akan diterapkan secara real-time.")
 
 st.divider()
 
